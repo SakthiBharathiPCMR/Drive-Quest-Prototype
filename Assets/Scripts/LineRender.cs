@@ -9,12 +9,12 @@ public class LineRender : MonoBehaviour
     public LineRenderer lineRenderer;
 
 
-    public Transform[] controlPoints; 
+    public Transform[] controlPoints;
     public int resolution = 10;
 
     void Start()
     {
-       // UpdateLine();
+        // UpdateLine();
     }
 
     /*void Update()
@@ -42,7 +42,7 @@ public class LineRender : MonoBehaviour
 
     Vector3 GetPointOnCurve(float t)
     {
-       
+
         Vector3 p0 = controlPoints[0].position;
         Vector3 p1 = controlPoints[1].position;
         Vector3 p2 = controlPoints[2].position;
@@ -86,6 +86,12 @@ public class LineRender : MonoBehaviour
             // Apply the updated positions
             lineRenderer.SetPositions(positions);
         }
+    }
+
+    public void ResetWayPoints(Vector3[] wayPoints)
+    {
+        lineRenderer.positionCount = wayPoints.Length;
+        lineRenderer.SetPositions(wayPoints);
     }
 
 }
