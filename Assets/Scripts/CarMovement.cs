@@ -16,6 +16,7 @@ public class CarMovement : MonoBehaviour
     private int counter = 0;
     public bool isMoved;
     public bool isDetect;
+    private CarMovement carMovement;
 
     private void Start()
     {
@@ -23,8 +24,8 @@ public class CarMovement : MonoBehaviour
         startwayPoint = wayPoint;
         startPos = transform.position;
         startRot = transform.eulerAngles;
-}
-private void OnMouseDown()
+    }
+    private void OnMouseDown()
     {
         if (isMoved) return;
         isMoved = true;
@@ -73,14 +74,19 @@ private void OnMouseDown()
     private void OnCollisionEnter(Collision collision)
     {
 
-        if (collision.gameObject.TryGetComponent(out CarMovement carMovement) && isMoved&& !isDetect)
+        if (collision.gameObject.TryGetComponent(out CarMovement carMovement) && isMoved && !isDetect)
         {
             isDetect = true;
             StartCoroutine(DelayStop());
-           // transform.GetComponent<BoxCollider>().enabled = false;
+            // transform.GetComponent<BoxCollider>().enabled = false;
+            //carMovement.ResetCar();
+            this.carMovement = carMovement;
+            
         }
 
     }
+
+
 
     private IEnumerator DelayStop()
     {
@@ -90,22 +96,13 @@ private void OnMouseDown()
     }
 
 
-    private void ResetCar()
+    public void ResetCar()
     {
-        if(isMoved)
-        {
-            StartCoroutine(MoveReverseThroughWaypoints());
-        }
-        else
-        {
-            Invoke("ResetAfterCollided",0.2f);
-        }
-
-
+        StartCoroutine(MoveReverseThroughWaypoints());
     }
 
 
-    private void ResetAfterCollided()
+    public void ResetAfterCollided()
     {
         lineRender.ResetWayPoints(startwayPoint);
         transform.position = startPos;
@@ -119,13 +116,16 @@ private void OnMouseDown()
 
     private IEnumerator MoveReverseThroughWaypoints()
     {
-        for (int i = counter; i >= 0; i--)
+        //transform.rotation = Quaternion.Euler(0f, 0f,0f);
+
+        for (int i = counter-1; i >= 0; i--)
         {
             yield return StartCoroutine(MoveReversePos(startwayPoint[i]));
 
         }
         Debug.Log("Reversed");
         ResetAfterCollided();
+        carMovement.ResetAfterCollided();
 
     }
 
@@ -135,16 +135,19 @@ private void OnMouseDown()
         float startTime = 0f;
         float endTime = 0.2f;
 
+
         while (startTime < endTime)
         {
             float t = startTime / endTime;
             transform.position = Vector3.Lerp(startPos, nextPos, t);
 
+          
 
-            Vector2 direction = new Vector2(nextPos.z - transform.position.z, nextPos.x - transform.position.x);
-            float angle = Mathf.Atan2(direction.normalized.y, direction.normalized.x);
-            angle += Mathf.PI;
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0f, angle * Mathf.Rad2Deg , 0f), t);
+
+                Vector2 direction = new Vector2(nextPos.z - transform.position.z, nextPos.x - transform.position.x);
+                float angle = Mathf.Atan2(direction.normalized.y, direction.normalized.x);
+                angle += Mathf.PI;
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0f, angle * Mathf.Rad2Deg, 0f), t);
 
 
             startTime += Time.deltaTime;
@@ -152,6 +155,7 @@ private void OnMouseDown()
 
         }
         //lineRender.RemoveLastPoint();
+        lineRender.AddFirstPoint(nextPos);
         transform.position = nextPos;
 
 

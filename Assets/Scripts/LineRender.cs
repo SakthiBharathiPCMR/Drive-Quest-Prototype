@@ -94,4 +94,28 @@ public class LineRender : MonoBehaviour
         lineRenderer.SetPositions(wayPoints);
     }
 
+    public void AddFirstPoint(Vector3 nextpos)
+    {
+        if (lineRenderer.positionCount > 0)
+        {
+            Vector3[] positions = new Vector3[lineRenderer.positionCount+1];
+            lineRenderer.GetPositions(positions);
+
+
+            // Shift points to the left, effectively removing the first point
+            for (int i = lineRenderer.positionCount; i >0; i--)
+            {
+                positions[i] = positions[i - 1];
+            }
+
+            positions[0] = nextpos;
+
+            // Reduce the position count by 1
+            lineRenderer.positionCount = positions.Length;
+
+            // Apply the updated positions
+            lineRenderer.SetPositions(positions);
+        }
+    }
+
 }
