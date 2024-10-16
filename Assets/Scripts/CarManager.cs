@@ -15,11 +15,82 @@ public class CarManager : MonoBehaviour
     public Transform[] shipTransforms;
     public Transform[] greenshiplocation;
     public Transform[] blueshiplocation;
+    public Transform[] hitparticleFx;
+    public Transform[] smokeparticleFx;
+    public AudioSource manager2audioSource;
+    public Transform winTransform;
 
     public bool isPlayable = true;
 
     public bool isGreen = true;
     private int shipMoved;
+
+
+    public Container[] containersArray;
+    public ShipScript[] cargoArray;
+    public CarMovement[] carMovementArray;
+    public LineRender[] lineRenderArray;
+
+
+
+
+
+    public void ResetGame()
+    {
+        foreach (Container item in containersArray)
+        {
+            item.ResetContainer();
+        }
+        foreach (ShipScript item in cargoArray)
+        {
+            item.ResetCargo();
+        }
+        foreach (CarMovement item in carMovementArray)
+        {
+            item.ResetAfterCollided();
+        }
+        foreach (LineRender item in lineRenderArray)
+        {
+            item.UpdateLine();
+        }
+        winTransform.gameObject.SetActive(false);
+        isPlayable = true;
+        isGreen = true;
+        shipMoved = 0;
+    }
+
+
+
+
+    public Transform GetHitParticleEffect()
+    {
+        foreach (Transform item in hitparticleFx)
+        {
+            if(!item.gameObject.activeInHierarchy)
+            {
+                return item;
+            }
+        }
+        return null;
+    }
+    public Transform GetSmokeParticleEffect()
+    {
+        foreach (Transform item in smokeparticleFx)
+        {
+            if (!item.gameObject.activeInHierarchy)
+            {
+                return item;
+            }
+        }
+        return null;
+    }
+
+
+
+
+
+
+
 
     public void CheckAvaiableStorage(CarMovement carMovement, Transform container)
     {
@@ -59,7 +130,11 @@ public class CarManager : MonoBehaviour
 
             if (shipMoved >= 6)
             {
-                Debug.Log("Won");
+               // Debug.Log("Won");
+                //winTransform.gameObject.SetActive(true);
+                StartCoroutine(WinTranformText());
+
+
                 return;
             }
         }
@@ -115,8 +190,23 @@ public class CarManager : MonoBehaviour
         }
         containerTransform.position = EndTransform.position;
         containerTransform.parent = EndTransform;
-    }
 
+
+        Transform particle = GetSmokeParticleEffect();
+
+        particle.position = EndTransform.position+(Vector3.back*1.5f)-(Vector3.up*0.5f);
+        particle.gameObject.SetActive(true);
+        StartCoroutine(DelayTurnOffParticle(particle));
+        manager2audioSource.Play();
+        Handheld.Vibrate();
+
+
+    }
+    private IEnumerator DelayTurnOffParticle(Transform hitParticle)
+    {
+        yield return new WaitForSeconds(1f);
+        hitParticle.gameObject.SetActive(false);
+    }
     private IEnumerator MoveShip(Transform containerTransform)
     {
         Vector3 startPos = containerTransform.position;
@@ -133,6 +223,7 @@ public class CarManager : MonoBehaviour
 
         }
         containerTransform.position = endPos;
+
     }
 
 
@@ -148,11 +239,20 @@ public class CarManager : MonoBehaviour
                 shipMoved++;
                 if (shipMoved >= 6)
                 {
-                    Debug.Log("Won");
+                    //   Debug.Log("Won");
+                    //winTransform.gameObject.SetActive(true);
+                    StartCoroutine(WinTranformText());
                     return;
                 }
             }
         }
+    }
+
+    private IEnumerator WinTranformText()
+    {
+        yield return new WaitForSeconds(1f);
+        winTransform.gameObject.SetActive(true);
+        isPlayable = false;
     }
 
 

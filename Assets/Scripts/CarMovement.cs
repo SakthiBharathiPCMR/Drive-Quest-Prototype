@@ -19,12 +19,14 @@ public class CarMovement : MonoBehaviour
     private Container containerScript;
     private float timeToMove = 0.2f;
     private float resetDistance = 2f;
+    private Transform carParent ;
 
     public Transform container;
     public BoxCollider boxCollider;
 
     public CarManager carManager;
     public CarColor carColor;
+    public AudioSource carAudioSource;
 
     private void Start()
     {
@@ -33,10 +35,12 @@ public class CarMovement : MonoBehaviour
         startPos = transform.position;
         startRot = transform.eulerAngles;
         boxCollider = container.GetComponent<BoxCollider>();
+        carAudioSource = GetComponent<AudioSource>();
+        carParent = transform.parent;
     }
     private void OnMouseDown()
     {
-        if (isMoved || Input.touchCount < 1||!carManager.isPlayable) return;
+        if (isMoved || Input.touchCount < 1 || !carManager.isPlayable) return;
         isMoved = true;
 
         StartCoroutine(MoveThroughWaypoints());
@@ -66,7 +70,7 @@ public class CarMovement : MonoBehaviour
         float endTime = timeToMove;
         while (startTime < endTime)
         {
-            if (Vector3.Distance(transform.position, boxCollider.transform.position) < resetDistance+1)
+            if (Vector3.Distance(transform.position, boxCollider.transform.position) < resetDistance + 1)
             {
                 boxCollider.enabled = false;
 
@@ -80,7 +84,7 @@ public class CarMovement : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0f, angle * Mathf.Rad2Deg, 0f), t);
 
 
-            
+
 
             startTime += Time.deltaTime;
             yield return null;
@@ -96,21 +100,49 @@ public class CarMovement : MonoBehaviour
 
         if (collision.gameObject.TryGetComponent(out CarMovement carMovement) && isMoved && !isDetect)
         {
+            carAudioSource.Play();
+            Handheld.Vibrate();
+
+
             isDetect = true;
             StartCoroutine(DelayStop());
             // transform.GetComponent<BoxCollider>().enabled = false;
             //carMovement.ResetCar();
             this.carMovement = carMovement;
+            PlayHitEffect(carMovement.transform.position);
 
         }
         else if (collision.gameObject.TryGetComponent<Container>(out Container container))
         {
+            carAudioSource.Play();
+            Handheld.Vibrate();
+
+
             isDetect = true;
             StopAllCoroutines();
             Invoke("ResetCar", 0.5f);
             containerScript = container;
+            Vector3 hit = container.transform.position + Vector3.back;
+            PlayHitEffect(hit);
         }
 
+    }
+
+
+    private void PlayHitEffect(Vector3 hitObject)
+    {
+        Vector3 distance = hitObject;
+        distance = new Vector3(distance.x, distance.y + 1, distance.z);
+        Transform hitParticle = carManager.GetHitParticleEffect();
+        hitParticle.position = distance;
+        hitParticle.gameObject.SetActive(true);
+        StartCoroutine(DelayTurnOffParticle(hitParticle));
+    }
+
+    private IEnumerator DelayTurnOffParticle(Transform hitParticle)
+    {
+        yield return new WaitForSeconds(1f);
+        hitParticle.gameObject.SetActive(false);
     }
 
 
@@ -131,12 +163,16 @@ public class CarMovement : MonoBehaviour
 
     public void ResetAfterCollided()
     {
+        transform.parent = carParent;
         lineRender.ResetWayPoints(startwayPoint);
         transform.position = startPos;
         transform.eulerAngles = startRot;
         isMoved = false;
         counter = 0;
         isDetect = false;
+        gameObject.SetActive(true);
+        boxCollider.enabled = true;
+        StopAllCoroutines();
 
         //transform.GetComponent<BoxCollider>().enabled = true;
     }
@@ -145,18 +181,16 @@ public class CarMovement : MonoBehaviour
     {
         bool isReset = true;
 
-
         for (int i = counter - 1; i >= 0; i--)
         {
             if (isReset)
             {
                 if (carMovement != null)
                 {
-                    if (Vector3.Distance(transform.position, carMovement.transform.position) > resetDistance)
+                    if (Vector3.Distance(transform.position, carMovement.transform.position) > resetDistance + 0.5f)
                     {
                         carMovement.ResetAfterCollided();
                         isReset = false;
-                        carMovement = null;
                     }
                 }
                 if (containerScript != null)
@@ -174,8 +208,14 @@ public class CarMovement : MonoBehaviour
             yield return StartCoroutine(MoveReversePos(startwayPoint[i]));
 
         }
-        Debug.Log("Reversed");
+       // Debug.Log("Reversed");
         ResetAfterCollided();
+        if(carMovement!=null)
+        {
+            carMovement.ResetAfterCollided();
+            carMovement = null;
+        }
+        
         // carMovement.ResetAfterCollided();
 
     }
@@ -208,6 +248,9 @@ public class CarMovement : MonoBehaviour
         //lineRender.RemoveLastPoint();
         lineRender.AddFirstPoint(nextPos);
         transform.position = nextPos;
+       
+
+
 
 
 
